@@ -1,0 +1,16 @@
+[tool.poetry]
+name = "swapi async"
+version = "0.1.0"
+description = ""
+authors = ["dimapink <dima22082308@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+aiohttp = "^3.11.11"
+more-itertools = "^10.5.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
