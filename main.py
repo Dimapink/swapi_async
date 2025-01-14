@@ -1,7 +1,12 @@
 import aiohttp
 import asyncio
+
 from more_itertools import chunked
-import datetime
+from schema import CharacterSchema
+from model import Characters, init_orm, close_orm
+from connection import Session
+from tqdm.asyncio import tqdm
+
 
 MAX_REQUEST_SIZE = 20
 BASE_URL = "https://swapi.py4e.com/api/people"
@@ -30,9 +35,9 @@ async def process_name(session: aiohttp.ClientSession, name: str):
 
 
 async def process_category(session: aiohttp.ClientSession, category: list[str]):
-    """Получаем все корабли"""
+    """Получаем все названия"""
     if not category:
-        return ""
+        return None
     
     elif isinstance(category, str):
         return await process_name(session, category)
@@ -51,33 +56,39 @@ async def process_category(session: aiohttp.ClientSession, category: list[str]):
 
 async def process_character(session: aiohttp.ClientSession, character_data: dict):
     """Заменяем ссылки на названия"""
-    print(character_data.get("url"))
-    if character_data.get("url") is None:
-        print(character_data)
     character_data["films"] = await process_category(session, character_data["films"])
     character_data["starships"] = await process_category(session, character_data["starships"])
     
     character_data["species"] = await process_category(session, character_data["species"])
     character_data["vehicles"] = await process_category(session, character_data["vehicles"])
     character_data["homeworld"] = await process_category(session, character_data["homeworld"])
+    if character_data:
+        return CharacterSchema(**character_data)
+
+
+async def insetr(result: list[CharacterSchema]):
+    async with Session() as session:
+        objects = [Characters(**character.model_dump()) for character in result if character]
+        
+        session.add_all(objects)
+        await session.commit()
+        
     
-    return character_data
-
-
-
 
 
 # ================================
 
 async def main():
-    start = datetime.datetime.now()
+    await init_orm()
+
     async with aiohttp.ClientSession() as session:
+        
         for chunks in chunked(range(1, 88), MAX_REQUEST_SIZE):
             coros = [get_character(session, i) for i in chunks]
-            result = await asyncio.gather(*coros)
+            result = await tqdm.gather(*coros)
+            task = asyncio.create_task(insetr(result))
         
-    print(result)
-    end = datetime.datetime.now()
-    print(end - start)
+        await asyncio.wait_for(task, timeout=5)
+    await close_orm()
 
 asyncio.run(main())

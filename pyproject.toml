@@ -9,6 +9,10 @@ readme = "README.md"
 python = "^3.10"
 aiohttp = "^3.11.11"
 more-itertools = "^10.5.0"
+pydantic = "^2.10.5"
+sqlalchemy = "^2.0.37"
+asyncpg = "^0.30.0"
+tqdm = "^4.67.1"
 
 
 [build-system]
